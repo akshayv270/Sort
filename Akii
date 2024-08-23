@@ -30,3 +30,28 @@ BEGIN
 
     -- You could perform additional logic here if needed
 END $$;
+
+
+
+
+CREATE OR REPLACE FUNCTION search_sort_paginate_employees(
+    search_text VARCHAR,
+    sort_column VARCHAR,
+    sort_direction VARCHAR,
+    page_size INT,
+    page_number INT
+) RETURNS TABLE(id INT, name VARCHAR, department VARCHAR, salary NUMERIC) AS $$
+BEGIN
+    RETURN QUERY EXECUTE format('
+        SELECT id, name, department, salary
+        FROM employees
+        WHERE name ILIKE $1
+           OR department ILIKE $1
+           OR CAST(salary AS TEXT) ILIKE $1
+        ORDER BY %I %s
+        OFFSET $2
+        LIMIT $3',
+        sort_column, sort_direction)
+    USING '%' || search_text || '%', (page_number - 1) * page_size, page_size;
+END;
+$$ LANGUAGE plpgsql;
