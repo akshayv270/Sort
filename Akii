@@ -1,0 +1,32 @@
+CREATE OR REPLACE PROCEDURE search_sort_paginate_employees(
+    IN search_text VARCHAR,
+    IN sort_column VARCHAR,
+    IN sort_direction VARCHAR,
+    IN page_size INT,
+    IN page_number INT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    -- Drop the temp table if it exists
+    DROP TABLE IF EXISTS temp_employee_results;
+
+    -- Create a temp table to store the results
+    CREATE TEMP TABLE temp_employee_results AS
+    SELECT id, name, department, salary
+    FROM employees
+    WHERE name ILIKE '%' || search_text || '%'
+       OR department ILIKE '%' || search_text || '%'
+       OR CAST(salary AS TEXT) ILIKE '%' || search_text || '%'
+    ORDER BY
+        CASE WHEN sort_column = 'id' THEN id::TEXT END,
+        CASE WHEN sort_column = 'name' THEN name END,
+        CASE WHEN sort_column = 'department' THEN department END,
+        CASE WHEN sort_column = 'salary' THEN salary::TEXT END
+        -- Apply sort direction
+        || ' ' || sort_direction
+    OFFSET (page_number - 1) * page_size
+    LIMIT page_size;
+
+    -- You could perform additional logic here if needed
+END $$;
